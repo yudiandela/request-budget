@@ -45,8 +45,6 @@ class DirectMaterialImport implements ToModel, WithHeadingRow, WithBatchInserts
         $fy_second = isset($row['fy_2022_2nd']) ? $row['fy_2022_2nd'] : null;
         $fy_total  = isset($row['fy_2022_total']) ? $row['fy_2022_total'] : null;
 
-        dd($row);
-
         $cek = DmaterialRb::where('acc_name', $acc_name)->where('group', $group)->first();
 
         if ($cek) {
