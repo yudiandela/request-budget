@@ -17,9 +17,12 @@ use App\DmaterialRb;
 use App\Exports\RbExport;
 use Illuminate\Http\Request;
 use App\Helpers\ImportBinder;
+// use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DirectMaterialImport;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Writer\Csv;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
 class RequestController extends Controller
 {
@@ -223,11 +226,46 @@ class RequestController extends Controller
         return DataTables::of($dm)->toJson();
     }
 
+    /**
+     * Parse file type xlsx
+     *
+     * @param Request $file
+     * @return void
+     */
+    protected function parseXlsx($file)
+    {
+        $name = time() . '.' . $file->getClientOriginalExtension();
+
+        /** Jika bukan format csv */
+        $reader = new Xlsx();
+        $spreadsheet = $reader->load($file);
+
+        $loadedSheetNames[] = $spreadsheet->getSheetNames()[0];
+
+        $writer = new Csv($spreadsheet);
+
+        foreach($loadedSheetNames as $sheetIndex => $loadedSheetName) {
+            $writer->setSheetIndex($sheetIndex);
+            $writer->save(public_path('storage/uploads/' . $name . '.csv'));
+        }
+
+        /** Buat ulang file csv */
+        return public_path('storage/uploads/' . $name . '.csv');
+    }
+
     public function materialimport(Request $request)
     {
         $file = $request->file('file');
         $name = time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('public/uploads', $name);
+        $ext  = $file->getClientOriginalExtension();
+
+        /** Upload file ke storage public */
+        $file->storeAs('public/uploads', $name);
+
+        /** Jika bukan format csv */
+        if($ext !== 'csv') {
+            $file = $this->parseXlsx($file);
+        }
 
         Excel::import(new DirectMaterialImport, $file);
 
@@ -237,21 +275,19 @@ class RequestController extends Controller
             'message' => 'Data berhasil di Upload!'
         ];
 
-        Storage::delete('public/uploads/' . $name);
+        Storage::delete('public/uploads');
 
         return redirect()->route('material.view')->with($res);
 
         // $data = [];
         // if ($request->hasFile('file')) {
-        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name . '.csv'));
 
         //     if ($datas->first()->has('acc_code')) {
         //         foreach ($datas as $data) {
-
         //             $cek = DmaterialRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
 
         //             if ($cek) {
-
         //                 $materialrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
         //                     ->update([
         //                         'april' => $data->apr,
@@ -271,7 +307,6 @@ class RequestController extends Controller
         //                         'fy_total'  => $data->fy_2022_total
         //                     ]);
         //             } else {
-
         //                 $materialrb                    = new DmaterialRb;
         //                 $materialrb->acc_code          = $data->acc_code;
         //                 $materialrb->acc_name          = $data->acc_name;
@@ -1283,8 +1318,9 @@ class RequestController extends Controller
         // $ValueBinder = new ImportBinder();
 
         Config::set('excel.csv.delimiter', ';');
-        $datas = Excel::load($file, function ($reader) {
-        })->get();
+        $datas = Excel::load($file, function ($reader) {})->get();
+
+        dd($datas);
         // Excel::setValueBinder($ValueBinder)->
 
         return $datas;
@@ -1300,7 +1336,6 @@ class RequestController extends Controller
         // }
         Config::set('excel.csv.delimiter', ';');
         $datas = Excel::load($file, function ($reader) {
-
             $reader->select(array('budget_no', 'line_or_dept', 'profit_center', 'profit_center_code', 'cost_center', 'type', 'project_name', 'import_domestic', 'items_name', 'equipment', 'qty', 'curency', 'original_price', 'exchange_rate', 'price', 'sop', 'first_down_payment_term', 'first_down_payment_amount', 'final_payment_term', 'final_payment_amount', 'owner_asset', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'))->get();
         })->get();
 
