@@ -16,8 +16,9 @@ use App\MasterCode;
 use App\DmaterialRb;
 use App\Exports\RbExport;
 use App\Imports\CapexImport;
-use Illuminate\Http\Request;
+use App\Imports\SalesImport;
 // use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\Request;
 use App\Helpers\ImportBinder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DirectMaterialImport;
@@ -101,111 +102,130 @@ class RequestController extends Controller
 
     public function slsimport(Request $request)
     {
-
         $file = $request->file('file');
         $name = time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('public/uploads', $name);
+        $ext  = $file->getClientOriginalExtension();
 
-        $data = [];
-        if ($request->hasFile('file')) {
-            $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+        /** Upload file ke storage public */
+        $file->storeAs('public/uploads', $name);
 
-            if ($datas->first()->has('acc_code')) {
-                foreach ($datas as $data) {
-
-                    // $salesrb = SalesRb::updateOrCreate(
-                    //     ['acc_name' => $data->acc_name, 'group' => $data->group],
-                    //     ['april' => $data->apr]
-                    //         );
-                    $cek = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
-
-                    if ($cek) {
-                        $salesrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
-                            ->update([
-                                'april' => $data->apr,
-                                'mei'       => $data->may,
-                                'juni'      => $data->jun,
-                                'juli'      => $data->jul,
-                                'agustus'   => $data->aug,
-                                'september' => $data->sept,
-                                'oktober'   => $data->oct,
-                                'november'  => $data->nov,
-                                'december'  => $data->dec,
-                                'januari'   => $data->jan,
-                                'februari'  => $data->feb,
-                                'maret'     => $data->mar,
-                                'fy_first'  => $data->fy_2022_1st,
-                                'fy_second' => $data->fy_2022_2nd,
-                                'fy_total'  => $data->fy_2022_total
-                            ]);
-                    } else {
-
-                        $salesrb                    = new SalesRb;
-                        $salesrb->acc_code          = $data->acc_code;
-                        $salesrb->acc_name          = $data->acc_name;
-                        $salesrb->group             = $data->group;
-                        $salesrb->april             = $data->apr;
-                        $salesrb->mei               = $data->may;
-                        $salesrb->juni              = $data->jun;
-                        $salesrb->juli              = $data->jul;
-                        $salesrb->agustus           = $data->aug;
-                        $salesrb->september         = $data->sept;
-                        $salesrb->oktober           = $data->oct;
-                        $salesrb->november          = $data->nov;
-                        $salesrb->december          = $data->dec;
-                        $salesrb->januari           = $data->jan;
-                        $salesrb->februari          = $data->feb;
-                        $salesrb->maret             = $data->mar;
-                        $salesrb->fy_first          = $data->fy_2022_1st;
-                        $salesrb->fy_second         = $data->fy_2022_2nd;
-                        $salesrb->fy_total          = $data->fy_2022_total;
-                        $salesrb->save();
-                    }
-                    // else {
-
-                    //    return redirect()
-                    //            ->route('sales.view')
-                    //            ->with(
-                    //                [
-                    //                    'title' => 'Error',
-                    //                    'type' => 'error',
-                    //                    'message' => 'Bad Request, Gagal Upload!'
-                    //                ]
-                    //            );
-                    // }
-
-
-                }
-
-                $res = [
-                    'title'             => 'Sukses',
-                    'type'              => 'success',
-                    'message'           => 'Data berhasil di Upload!'
-                ];
-                Storage::delete('public/uploads/' . $name);
-                return redirect()
-                    ->route('sales.view')
-                    ->with($res);
-            } else {
-
-                Storage::delete('public/uploads/' . $name);
-
-                return redirect()
-                    ->route('sales.view')
-                    ->with(
-                        [
-                            'title' => 'Error',
-                            'type' => 'error',
-                            'message' => 'Format Buruk!'
-                        ]
-                    );
-            }
+        /** Jika bukan format csv */
+        if($ext !== 'csv') {
+            $file = $this->parseXlsx($file, $name, 0);
         }
+
+        Excel::import(new SalesImport, $file);
+
+        $res = [
+            'title'   => 'Sukses',
+            'type'    => 'success',
+            'message' => 'Data berhasil di Upload!'
+        ];
+
+        /** Hapus files */
+        $this->deleteFiles($name);
+
+        return redirect()->route('sales.view')->with($res);
+
+        // $data = [];
+        // if ($request->hasFile('file')) {
+        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+
+        //     if ($datas->first()->has('acc_code')) {
+        //         foreach ($datas as $data) {
+
+        //             // $salesrb = SalesRb::updateOrCreate(
+        //             //     ['acc_name' => $data->acc_name, 'group' => $data->group],
+        //             //     ['april' => $data->apr]
+        //             //         );
+        //             $cek = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
+
+        //             if ($cek) {
+        //                 $salesrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
+        //                     ->update([
+        //                         'april' => $data->apr,
+        //                         'mei'       => $data->may,
+        //                         'juni'      => $data->jun,
+        //                         'juli'      => $data->jul,
+        //                         'agustus'   => $data->aug,
+        //                         'september' => $data->sept,
+        //                         'oktober'   => $data->oct,
+        //                         'november'  => $data->nov,
+        //                         'december'  => $data->dec,
+        //                         'januari'   => $data->jan,
+        //                         'februari'  => $data->feb,
+        //                         'maret'     => $data->mar,
+        //                         'fy_first'  => $data->fy_2022_1st,
+        //                         'fy_second' => $data->fy_2022_2nd,
+        //                         'fy_total'  => $data->fy_2022_total
+        //                     ]);
+        //             } else {
+
+        //                 $salesrb                    = new SalesRb;
+        //                 $salesrb->acc_code          = $data->acc_code;
+        //                 $salesrb->acc_name          = $data->acc_name;
+        //                 $salesrb->group             = $data->group;
+        //                 $salesrb->april             = $data->apr;
+        //                 $salesrb->mei               = $data->may;
+        //                 $salesrb->juni              = $data->jun;
+        //                 $salesrb->juli              = $data->jul;
+        //                 $salesrb->agustus           = $data->aug;
+        //                 $salesrb->september         = $data->sept;
+        //                 $salesrb->oktober           = $data->oct;
+        //                 $salesrb->november          = $data->nov;
+        //                 $salesrb->december          = $data->dec;
+        //                 $salesrb->januari           = $data->jan;
+        //                 $salesrb->februari          = $data->feb;
+        //                 $salesrb->maret             = $data->mar;
+        //                 $salesrb->fy_first          = $data->fy_2022_1st;
+        //                 $salesrb->fy_second         = $data->fy_2022_2nd;
+        //                 $salesrb->fy_total          = $data->fy_2022_total;
+        //                 $salesrb->save();
+        //             }
+        //             // else {
+
+        //             //    return redirect()
+        //             //            ->route('sales.view')
+        //             //            ->with(
+        //             //                [
+        //             //                    'title' => 'Error',
+        //             //                    'type' => 'error',
+        //             //                    'message' => 'Bad Request, Gagal Upload!'
+        //             //                ]
+        //             //            );
+        //             // }
+
+
+        //         }
+
+        //         $res = [
+        //             'title'             => 'Sukses',
+        //             'type'              => 'success',
+        //             'message'           => 'Data berhasil di Upload!'
+        //         ];
+        //         Storage::delete('public/uploads/' . $name);
+        //         return redirect()
+        //             ->route('sales.view')
+        //             ->with($res);
+        //     } else {
+
+        //         Storage::delete('public/uploads/' . $name);
+
+        //         return redirect()
+        //             ->route('sales.view')
+        //             ->with(
+        //                 [
+        //                     'title' => 'Error',
+        //                     'type' => 'error',
+        //                     'message' => 'Format Buruk!'
+        //                 ]
+        //             );
+        //     }
+        // }
     }
 
     public function materialview()
     {
-
         return view('pages.request_budget.rb_material');
     }
 
@@ -225,31 +245,6 @@ class RequestController extends Controller
         $dm = DmaterialRb::select('acc_code', 'acc_name', 'group', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'december', 'januari', 'februari', 'maret', 'fy_first', 'fy_second', 'fy_total')->get();
 
         return DataTables::of($dm)->toJson();
-    }
-
-    /**
-     * Parse file type xlsx
-     *
-     * @param Request $file
-     * @return void
-     */
-    protected function parseXlsx($file, $name, $sheetNamesIndex = 0)
-    {
-        /** Jika bukan format csv */
-        $reader = new Xlsx();
-        $spreadsheet = $reader->load($file);
-
-        $loadedSheetNames[] = $spreadsheet->getSheetNames()[$sheetNamesIndex];
-
-        $writer = new Csv($spreadsheet);
-
-        foreach($loadedSheetNames as $sheetIndex => $loadedSheetName) {
-            $writer->setSheetIndex($sheetIndex);
-            $writer->save(public_path('storage/uploads/' . $name . '.csv'));
-        }
-
-        /** Buat ulang file csv */
-        return public_path('storage/uploads/' . $name . '.csv');
     }
 
     public function materialimport(Request $request)
@@ -274,7 +269,8 @@ class RequestController extends Controller
             'message' => 'Data berhasil di Upload!'
         ];
 
-        Storage::delete('public/storage/uploads');
+        /** Hapus files */
+        $this->deleteFiles($name);
 
         return redirect()->route('material.view')->with($res);
 
@@ -412,7 +408,8 @@ class RequestController extends Controller
             'message' => 'Data berhasil di Upload!'
         ];
 
-        Storage::delete('public/storage/uploads');
+        /** Hapus files */
+        $this->deleteFiles($name);
 
         return redirect()->route('capex.view')->with($res);
 
@@ -1374,5 +1371,41 @@ class RequestController extends Controller
         })->get();
 
         return $datas;
+    }
+
+    /**
+     * Parse file type xlsx
+     *
+     * @param Request $file
+     * @return void
+     */
+    protected function parseXlsx($file, $name, $sheetNamesIndex = 0)
+    {
+        /** Jika bukan format csv */
+        $reader = new Xlsx();
+        $spreadsheet = $reader->load($file);
+
+        $loadedSheetNames[] = $spreadsheet->getSheetNames()[$sheetNamesIndex];
+
+        $writer = new Csv($spreadsheet);
+
+        foreach($loadedSheetNames as $sheetIndex => $loadedSheetName) {
+            $writer->setSheetIndex($sheetIndex);
+            $writer->save(public_path('storage/uploads/' . $name . '.csv'));
+        }
+
+        /** Buat ulang file csv */
+        return public_path('storage/uploads/' . $name . '.csv');
+    }
+
+    /**
+     * Remove file after upload
+     *
+     * @return void
+     */
+    protected function deleteFiles($name) : void
+    {
+        unlink(public_path('storage/uploads/' . $name));
+        unlink(public_path('storage/uploads/' . $name . '.csv'));
     }
 }
