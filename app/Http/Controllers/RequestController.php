@@ -15,11 +15,16 @@ use Carbon\Carbon;
 use App\MasterCode;
 use App\DmaterialRb;
 use App\Exports\RbExport;
+use App\Imports\CapexImport;
+use App\Imports\SalesImport;
+// use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use App\Helpers\ImportBinder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DirectMaterialImport;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Writer\Csv;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
 class RequestController extends Controller
 {
@@ -97,111 +102,130 @@ class RequestController extends Controller
 
     public function slsimport(Request $request)
     {
-
         $file = $request->file('file');
         $name = time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('public/uploads', $name);
+        $ext  = $file->getClientOriginalExtension();
 
-        $data = [];
-        if ($request->hasFile('file')) {
-            $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+        /** Upload file ke storage public */
+        $file->storeAs('public/uploads', $name);
 
-            if ($datas->first()->has('acc_code')) {
-                foreach ($datas as $data) {
-
-                    // $salesrb = SalesRb::updateOrCreate(
-                    //     ['acc_name' => $data->acc_name, 'group' => $data->group],
-                    //     ['april' => $data->apr]
-                    //         );
-                    $cek = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
-
-                    if ($cek) {
-                        $salesrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
-                            ->update([
-                                'april' => $data->apr,
-                                'mei'       => $data->may,
-                                'juni'      => $data->jun,
-                                'juli'      => $data->jul,
-                                'agustus'   => $data->aug,
-                                'september' => $data->sept,
-                                'oktober'   => $data->oct,
-                                'november'  => $data->nov,
-                                'december'  => $data->dec,
-                                'januari'   => $data->jan,
-                                'februari'  => $data->feb,
-                                'maret'     => $data->mar,
-                                'fy_first'  => $data->fy_2022_1st,
-                                'fy_second' => $data->fy_2022_2nd,
-                                'fy_total'  => $data->fy_2022_total
-                            ]);
-                    } else {
-
-                        $salesrb                    = new SalesRb;
-                        $salesrb->acc_code          = $data->acc_code;
-                        $salesrb->acc_name          = $data->acc_name;
-                        $salesrb->group             = $data->group;
-                        $salesrb->april             = $data->apr;
-                        $salesrb->mei               = $data->may;
-                        $salesrb->juni              = $data->jun;
-                        $salesrb->juli              = $data->jul;
-                        $salesrb->agustus           = $data->aug;
-                        $salesrb->september         = $data->sept;
-                        $salesrb->oktober           = $data->oct;
-                        $salesrb->november          = $data->nov;
-                        $salesrb->december          = $data->dec;
-                        $salesrb->januari           = $data->jan;
-                        $salesrb->februari          = $data->feb;
-                        $salesrb->maret             = $data->mar;
-                        $salesrb->fy_first          = $data->fy_2022_1st;
-                        $salesrb->fy_second         = $data->fy_2022_2nd;
-                        $salesrb->fy_total          = $data->fy_2022_total;
-                        $salesrb->save();
-                    }
-                    // else {
-
-                    //    return redirect()
-                    //            ->route('sales.view')
-                    //            ->with(
-                    //                [
-                    //                    'title' => 'Error',
-                    //                    'type' => 'error',
-                    //                    'message' => 'Bad Request, Gagal Upload!'
-                    //                ]
-                    //            );
-                    // }
-
-
-                }
-
-                $res = [
-                    'title'             => 'Sukses',
-                    'type'              => 'success',
-                    'message'           => 'Data berhasil di Upload!'
-                ];
-                Storage::delete('public/uploads/' . $name);
-                return redirect()
-                    ->route('sales.view')
-                    ->with($res);
-            } else {
-
-                Storage::delete('public/uploads/' . $name);
-
-                return redirect()
-                    ->route('sales.view')
-                    ->with(
-                        [
-                            'title' => 'Error',
-                            'type' => 'error',
-                            'message' => 'Format Buruk!'
-                        ]
-                    );
-            }
+        /** Jika bukan format csv */
+        if($ext !== 'csv') {
+            $file = $this->parseXlsx($file, $name, 0);
         }
+
+        Excel::import(new SalesImport, $file);
+
+        $res = [
+            'title'   => 'Sukses',
+            'type'    => 'success',
+            'message' => 'Data berhasil di Upload!'
+        ];
+
+        /** Hapus files */
+        $this->deleteFiles($name);
+
+        return redirect()->route('sales.view')->with($res);
+
+        // $data = [];
+        // if ($request->hasFile('file')) {
+        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+
+        //     if ($datas->first()->has('acc_code')) {
+        //         foreach ($datas as $data) {
+
+        //             // $salesrb = SalesRb::updateOrCreate(
+        //             //     ['acc_name' => $data->acc_name, 'group' => $data->group],
+        //             //     ['april' => $data->apr]
+        //             //         );
+        //             $cek = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
+
+        //             if ($cek) {
+        //                 $salesrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
+        //                     ->update([
+        //                         'april' => $data->apr,
+        //                         'mei'       => $data->may,
+        //                         'juni'      => $data->jun,
+        //                         'juli'      => $data->jul,
+        //                         'agustus'   => $data->aug,
+        //                         'september' => $data->sept,
+        //                         'oktober'   => $data->oct,
+        //                         'november'  => $data->nov,
+        //                         'december'  => $data->dec,
+        //                         'januari'   => $data->jan,
+        //                         'februari'  => $data->feb,
+        //                         'maret'     => $data->mar,
+        //                         'fy_first'  => $data->fy_2022_1st,
+        //                         'fy_second' => $data->fy_2022_2nd,
+        //                         'fy_total'  => $data->fy_2022_total
+        //                     ]);
+        //             } else {
+
+        //                 $salesrb                    = new SalesRb;
+        //                 $salesrb->acc_code          = $data->acc_code;
+        //                 $salesrb->acc_name          = $data->acc_name;
+        //                 $salesrb->group             = $data->group;
+        //                 $salesrb->april             = $data->apr;
+        //                 $salesrb->mei               = $data->may;
+        //                 $salesrb->juni              = $data->jun;
+        //                 $salesrb->juli              = $data->jul;
+        //                 $salesrb->agustus           = $data->aug;
+        //                 $salesrb->september         = $data->sept;
+        //                 $salesrb->oktober           = $data->oct;
+        //                 $salesrb->november          = $data->nov;
+        //                 $salesrb->december          = $data->dec;
+        //                 $salesrb->januari           = $data->jan;
+        //                 $salesrb->februari          = $data->feb;
+        //                 $salesrb->maret             = $data->mar;
+        //                 $salesrb->fy_first          = $data->fy_2022_1st;
+        //                 $salesrb->fy_second         = $data->fy_2022_2nd;
+        //                 $salesrb->fy_total          = $data->fy_2022_total;
+        //                 $salesrb->save();
+        //             }
+        //             // else {
+
+        //             //    return redirect()
+        //             //            ->route('sales.view')
+        //             //            ->with(
+        //             //                [
+        //             //                    'title' => 'Error',
+        //             //                    'type' => 'error',
+        //             //                    'message' => 'Bad Request, Gagal Upload!'
+        //             //                ]
+        //             //            );
+        //             // }
+
+
+        //         }
+
+        //         $res = [
+        //             'title'             => 'Sukses',
+        //             'type'              => 'success',
+        //             'message'           => 'Data berhasil di Upload!'
+        //         ];
+        //         Storage::delete('public/uploads/' . $name);
+        //         return redirect()
+        //             ->route('sales.view')
+        //             ->with($res);
+        //     } else {
+
+        //         Storage::delete('public/uploads/' . $name);
+
+        //         return redirect()
+        //             ->route('sales.view')
+        //             ->with(
+        //                 [
+        //                     'title' => 'Error',
+        //                     'type' => 'error',
+        //                     'message' => 'Format Buruk!'
+        //                 ]
+        //             );
+        //     }
+        // }
     }
 
     public function materialview()
     {
-
         return view('pages.request_budget.rb_material');
     }
 
@@ -227,7 +251,15 @@ class RequestController extends Controller
     {
         $file = $request->file('file');
         $name = time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('public/uploads', $name);
+        $ext  = $file->getClientOriginalExtension();
+
+        /** Upload file ke storage public */
+        $file->storeAs('public/uploads', $name);
+
+        /** Jika bukan format csv */
+        if($ext !== 'csv') {
+            $file = $this->parseXlsx($file, $name, 0);
+        }
 
         Excel::import(new DirectMaterialImport, $file);
 
@@ -237,21 +269,20 @@ class RequestController extends Controller
             'message' => 'Data berhasil di Upload!'
         ];
 
-        Storage::delete('public/uploads/' . $name);
+        /** Hapus files */
+        $this->deleteFiles($name);
 
         return redirect()->route('material.view')->with($res);
 
         // $data = [];
         // if ($request->hasFile('file')) {
-        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name));
+        //     $datas = $this->getCsvFile(public_path('storage/uploads/' . $name . '.csv'));
 
         //     if ($datas->first()->has('acc_code')) {
         //         foreach ($datas as $data) {
-
         //             $cek = DmaterialRb::where('acc_name', $data->acc_name)->where('group', $data->group)->first();
 
         //             if ($cek) {
-
         //                 $materialrb = SalesRb::where('acc_name', $data->acc_name)->where('group', $data->group)
         //                     ->update([
         //                         'april' => $data->apr,
@@ -271,7 +302,6 @@ class RequestController extends Controller
         //                         'fy_total'  => $data->fy_2022_total
         //                     ]);
         //             } else {
-
         //                 $materialrb                    = new DmaterialRb;
         //                 $materialrb->acc_code          = $data->acc_code;
         //                 $materialrb->acc_name          = $data->acc_name;
@@ -335,7 +365,6 @@ class RequestController extends Controller
 
     public function capexview()
     {
-
         return view('pages.request_budget.rb_capex');
     }
 
@@ -359,139 +388,159 @@ class RequestController extends Controller
 
     public function capeximport(Request $request)
     {
-
         $file = $request->file('file');
         $name = time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('public/uploads', $name);
+        $ext  = $file->getClientOriginalExtension();
 
-        $data = [];
-        if ($request->hasFile('file')) {
-            $datas = $this->getCsvFile2(public_path('storage/uploads/' . $name));
+        /** Upload file ke storage public */
+        $file->storeAs('public/uploads', $name);
 
-            if ($datas->first()->has('budget_no')) {
-                foreach ($datas as $data) {
-
-                    $cek = CapexRb::where('budget_no', $data->budget_no)->where('line', $data->line_or_dept)->first();
-
-                    if (!empty($data->budget_no)) {
-
-                        if ($cek) {
-
-                            $capexrb = CapexRb::where('budget_no', $data->budget_no)->where('line', $data->line_or_dept)
-                                ->update([
-                                    'profit_center' => $data->profit_center,
-                                    'profit_center_code'    => $data->profit_center_code,
-                                    'cost_center'           => $data->cost_center,
-                                    'type'                  => $data->type,
-                                    'project_name'          => $data->project_name,
-                                    'import_domestic'       => $data->importdomestic,
-                                    'items_name'            => $data->items_name,
-                                    'equipment'             => $data->equipment,
-                                    'qty'                   => $data->qty,
-                                    'curency'               => $data->curency,
-                                    'original_price'        => $data->original_price,
-                                    'exchange_rate'         => $data->exchange_rate,
-                                    'price'                 => $data->price,
-                                    'sop'                   => $data->sop,
-                                    'first_dopayment_term'  => $data->first_down_payment_term,
-                                    'first_dopayment_amount' => $data->first_down_payment_amount,
-                                    'final_payment_term'    => $data->final_payment_term,
-                                    'final_payment_amount'  => $data->final_payment_amount,
-                                    'owner_asset'           => $data->owner_asset,
-                                    'april'                 => $data->apr,
-                                    'mei'                   => $data->may,
-                                    'juni'                  => $data->jun,
-                                    'juli'                  => $data->jul,
-                                    'agustus'               => $data->aug,
-                                    'september'             => $data->sep,
-                                    'oktober'               => $data->oct,
-                                    'november'              => $data->nov,
-                                    'december'              => $data->dec,
-                                    'januari'               => $data->jan,
-                                    'februari'              => $data->feb,
-                                    'maret'                 => $data->mar
-                                ]);
-                        } else {
-
-                            $capexrb                         = new CapexRb;
-                            $capexrb->dept                   = $data->dept;
-                            $capexrb->budget_no              = $data->budget_no;
-                            $capexrb->line                   = $data->line_or_dept;
-                            $capexrb->profit_center          = $data->profit_center;
-                            $capexrb->profit_center_code     = $data->profit_center_code;
-                            $capexrb->cost_center            = $data->cost_center;
-                            $capexrb->type                   = $data->type;
-                            $capexrb->project_name           = $data->project_name;
-                            $capexrb->import_domestic        = $data->importdomestic;
-                            $capexrb->items_name             = $data->items_name;
-                            $capexrb->equipment              = $data->equipment;
-                            $capexrb->qty                    = $data->qty;
-                            $capexrb->curency                = $data->curency;
-                            $capexrb->original_price         = $data->original_price;
-                            $capexrb->exchange_rate          = $data->exchange_rate;
-                            $capexrb->price                  = $data->price;
-                            $capexrb->sop                    = $data->sop;
-                            $capexrb->first_dopayment_term   = $data->first_down_payment_term;
-                            $capexrb->first_dopayment_amount = $data->first_down_payment_amount;
-                            $capexrb->final_payment_term     = $data->final_payment_term;
-                            $capexrb->final_payment_amount   = $data->final_payment_amount;
-                            $capexrb->owner_asset            = $data->owner_asset;
-                            $capexrb->april                  = $data->apr;
-                            $capexrb->mei                    = $data->may;
-                            $capexrb->juni                   = $data->jun;
-                            $capexrb->juli                   = $data->jul;
-                            $capexrb->agustus                = $data->aug;
-                            $capexrb->september              = $data->sep;
-                            $capexrb->oktober                = $data->oct;
-                            $capexrb->november               = $data->nov;
-                            $capexrb->december               = $data->dec;
-                            $capexrb->januari                = $data->jan;
-                            $capexrb->februari               = $data->feb;
-                            $capexrb->maret                  = $data->mar;
-                            // $capexrb->fy                     = $data->fy_2022;
-                            $capexrb->save();
-                        }
-                        // else {
-
-                        //    return redirect()
-                        //            ->route('capex.view')
-                        //            ->with(
-                        //                [
-                        //                    'title' => 'Error',
-                        //                    'type' => 'error',
-                        //                    'message' => 'Bad Request, Gagal Upload!'
-                        //                ]
-                        //            );
-
-                        // }
-
-                    }
-                }
-
-                $res = [
-                    'title'             => 'Sukses',
-                    'type'              => 'success',
-                    'message'           => 'Data berhasil di Upload!'
-                ];
-                Storage::delete('public/uploads/' . $name);
-                return redirect()
-                    ->route('capex.view')
-                    ->with($res);
-            } else {
-
-                Storage::delete('public/uploads/' . $name);
-
-                return redirect()
-                    ->route('capex.view')
-                    ->with(
-                        [
-                            'title' => 'Error',
-                            'type' => 'error',
-                            'message' => 'Format Buruk!'
-                        ]
-                    );
-            }
+        /** Jika bukan format csv */
+        if($ext !== 'csv') {
+            $file = $this->parseXlsx($file, $name, 0);
         }
+
+        Excel::import(new CapexImport, $file);
+
+        $res = [
+            'title'   => 'Sukses',
+            'type'    => 'success',
+            'message' => 'Data berhasil di Upload!'
+        ];
+
+        /** Hapus files */
+        $this->deleteFiles($name);
+
+        return redirect()->route('capex.view')->with($res);
+
+        // $data = [];
+        // if ($request->hasFile('file')) {
+        //     $datas = $this->getCsvFile2(public_path('storage/uploads/' . $name));
+
+        //     if ($datas->first()->has('budget_no')) {
+        //         foreach ($datas as $data) {
+
+        //             $cek = CapexRb::where('budget_no', $data->budget_no)->where('line', $data->line_or_dept)->first();
+
+        //             if (!empty($data->budget_no)) {
+
+        //                 if ($cek) {
+
+        //                     $capexrb = CapexRb::where('budget_no', $data->budget_no)->where('line', $data->line_or_dept)
+        //                         ->update([
+        //                             'profit_center' => $data->profit_center,
+        //                             'profit_center_code'    => $data->profit_center_code,
+        //                             'cost_center'           => $data->cost_center,
+        //                             'type'                  => $data->type,
+        //                             'project_name'          => $data->project_name,
+        //                             'import_domestic'       => $data->importdomestic,
+        //                             'items_name'            => $data->items_name,
+        //                             'equipment'             => $data->equipment,
+        //                             'qty'                   => $data->qty,
+        //                             'curency'               => $data->curency,
+        //                             'original_price'        => $data->original_price,
+        //                             'exchange_rate'         => $data->exchange_rate,
+        //                             'price'                 => $data->price,
+        //                             'sop'                   => $data->sop,
+        //                             'first_dopayment_term'  => $data->first_down_payment_term,
+        //                             'first_dopayment_amount' => $data->first_down_payment_amount,
+        //                             'final_payment_term'    => $data->final_payment_term,
+        //                             'final_payment_amount'  => $data->final_payment_amount,
+        //                             'owner_asset'           => $data->owner_asset,
+        //                             'april'                 => $data->apr,
+        //                             'mei'                   => $data->may,
+        //                             'juni'                  => $data->jun,
+        //                             'juli'                  => $data->jul,
+        //                             'agustus'               => $data->aug,
+        //                             'september'             => $data->sep,
+        //                             'oktober'               => $data->oct,
+        //                             'november'              => $data->nov,
+        //                             'december'              => $data->dec,
+        //                             'januari'               => $data->jan,
+        //                             'februari'              => $data->feb,
+        //                             'maret'                 => $data->mar
+        //                         ]);
+        //                 } else {
+
+        //                     $capexrb                         = new CapexRb;
+        //                     $capexrb->dept                   = $data->dept;
+        //                     $capexrb->budget_no              = $data->budget_no;
+        //                     $capexrb->line                   = $data->line_or_dept;
+        //                     $capexrb->profit_center          = $data->profit_center;
+        //                     $capexrb->profit_center_code     = $data->profit_center_code;
+        //                     $capexrb->cost_center            = $data->cost_center;
+        //                     $capexrb->type                   = $data->type;
+        //                     $capexrb->project_name           = $data->project_name;
+        //                     $capexrb->import_domestic        = $data->importdomestic;
+        //                     $capexrb->items_name             = $data->items_name;
+        //                     $capexrb->equipment              = $data->equipment;
+        //                     $capexrb->qty                    = $data->qty;
+        //                     $capexrb->curency                = $data->curency;
+        //                     $capexrb->original_price         = $data->original_price;
+        //                     $capexrb->exchange_rate          = $data->exchange_rate;
+        //                     $capexrb->price                  = $data->price;
+        //                     $capexrb->sop                    = $data->sop;
+        //                     $capexrb->first_dopayment_term   = $data->first_down_payment_term;
+        //                     $capexrb->first_dopayment_amount = $data->first_down_payment_amount;
+        //                     $capexrb->final_payment_term     = $data->final_payment_term;
+        //                     $capexrb->final_payment_amount   = $data->final_payment_amount;
+        //                     $capexrb->owner_asset            = $data->owner_asset;
+        //                     $capexrb->april                  = $data->apr;
+        //                     $capexrb->mei                    = $data->may;
+        //                     $capexrb->juni                   = $data->jun;
+        //                     $capexrb->juli                   = $data->jul;
+        //                     $capexrb->agustus                = $data->aug;
+        //                     $capexrb->september              = $data->sep;
+        //                     $capexrb->oktober                = $data->oct;
+        //                     $capexrb->november               = $data->nov;
+        //                     $capexrb->december               = $data->dec;
+        //                     $capexrb->januari                = $data->jan;
+        //                     $capexrb->februari               = $data->feb;
+        //                     $capexrb->maret                  = $data->mar;
+        //                     // $capexrb->fy                     = $data->fy_2022;
+        //                     $capexrb->save();
+        //                 }
+        //                 // else {
+
+        //                 //    return redirect()
+        //                 //            ->route('capex.view')
+        //                 //            ->with(
+        //                 //                [
+        //                 //                    'title' => 'Error',
+        //                 //                    'type' => 'error',
+        //                 //                    'message' => 'Bad Request, Gagal Upload!'
+        //                 //                ]
+        //                 //            );
+
+        //                 // }
+
+        //             }
+        //         }
+
+        //         $res = [
+        //             'title'             => 'Sukses',
+        //             'type'              => 'success',
+        //             'message'           => 'Data berhasil di Upload!'
+        //         ];
+        //         Storage::delete('public/uploads/' . $name);
+        //         return redirect()
+        //             ->route('capex.view')
+        //             ->with($res);
+        //     } else {
+
+        //         Storage::delete('public/uploads/' . $name);
+
+        //         return redirect()
+        //             ->route('capex.view')
+        //             ->with(
+        //                 [
+        //                     'title' => 'Error',
+        //                     'type' => 'error',
+        //                     'message' => 'Format Buruk!'
+        //                 ]
+        //             );
+        //     }
+        // }
     }
 
     public function expenseview()
@@ -1283,8 +1332,9 @@ class RequestController extends Controller
         // $ValueBinder = new ImportBinder();
 
         Config::set('excel.csv.delimiter', ';');
-        $datas = Excel::load($file, function ($reader) {
-        })->get();
+        $datas = Excel::load($file, function ($reader) {})->get();
+
+        dd($datas);
         // Excel::setValueBinder($ValueBinder)->
 
         return $datas;
@@ -1300,7 +1350,6 @@ class RequestController extends Controller
         // }
         Config::set('excel.csv.delimiter', ';');
         $datas = Excel::load($file, function ($reader) {
-
             $reader->select(array('budget_no', 'line_or_dept', 'profit_center', 'profit_center_code', 'cost_center', 'type', 'project_name', 'import_domestic', 'items_name', 'equipment', 'qty', 'curency', 'original_price', 'exchange_rate', 'price', 'sop', 'first_down_payment_term', 'first_down_payment_amount', 'final_payment_term', 'final_payment_amount', 'owner_asset', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'))->get();
         })->get();
 
@@ -1322,5 +1371,41 @@ class RequestController extends Controller
         })->get();
 
         return $datas;
+    }
+
+    /**
+     * Parse file type xlsx
+     *
+     * @param Request $file
+     * @return void
+     */
+    protected function parseXlsx($file, $name, $sheetNamesIndex = 0)
+    {
+        /** Jika bukan format csv */
+        $reader = new Xlsx();
+        $spreadsheet = $reader->load($file);
+
+        $loadedSheetNames[] = $spreadsheet->getSheetNames()[$sheetNamesIndex];
+
+        $writer = new Csv($spreadsheet);
+
+        foreach($loadedSheetNames as $sheetIndex => $loadedSheetName) {
+            $writer->setSheetIndex($sheetIndex);
+            $writer->save(public_path('storage/uploads/' . $name . '.csv'));
+        }
+
+        /** Buat ulang file csv */
+        return public_path('storage/uploads/' . $name . '.csv');
+    }
+
+    /**
+     * Remove file after upload
+     *
+     * @return void
+     */
+    protected function deleteFiles($name) : void
+    {
+        unlink(public_path('storage/uploads/' . $name));
+        unlink(public_path('storage/uploads/' . $name . '.csv'));
     }
 }
