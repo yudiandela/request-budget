@@ -33,7 +33,7 @@
                             <div class="form-group">
                                 <label class="control-label">RB capex File Input</label>
                                 <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xls">
-                                <label class="text-muted">*) File format .csv</label>
+                                <label class="text-muted">*) File format .csv,.xlsx,.xls</label>
                                 <br>
                                 <a href="{{ url('files/Template_Capex.xlsx') }}" ><i class="mdi mdi-download"></i>  Format RB Capex &emsp;</a>
                                 <!-- <a href="{{ url('files/Template_Capex_body') }}" ><i class="mdi mdi-download"></i>  Format RB Capex Body</a> -->
