@@ -32,10 +32,10 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label class="control-label">RB Expense File Input</label>
-                                <input type="file" name="file" class="form-control" accept=".csv">
-                                <label class="text-muted">*) File format .csv</label>
+                                <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xls">
+                                <label class="text-muted">*) File format .csv,.xlsx,.xls</label>
                                 <br>
-                                <a href="{{ url('files/Template_Expense.xlsx') }}" ><i class="mdi mdi-download"></i> Format RB Expense
+                                <a href="{{ url('files/Template_Expense_New2.xlsx') }}" ><i class="mdi mdi-download"></i> Format RB Expense
                                 </a>
                                 <!-- <a href="{{ url('files/Template_Expense_body') }}" ><i class="mdi mdi-download"></i>  Format RB Expense Body</a -->
                             </div>
@@ -50,7 +50,7 @@
                                 </label>
                             </div> -->
                         </div>
-                        
+
                         <div class="col-md-12 text-left">
                             <button type="submit" id="btn-import" class="btn btn-primary btn-bordered waves-effect waves-light" onclick="on_table_temporary()">Upload</button>
                             <button type="button" class="btn btn-default btn-bordered waves-effect waves-light" data-dismiss="modal">Cancel</button>

@@ -33,9 +33,9 @@
                             <div class="form-group">
                                 <label class="control-label">RB Sales File Input</label>
                                 <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xls">
-                                <label class="text-muted">*) File format .csv</label>
+                                <label class="text-muted">*) File format .csv,.xlsx,.xls</label>
                                 <br>
-                                <a href="{{ url('files/Template_Sales.xlsx') }}" ><i class="mdi mdi-download"></i>  Format RB Sales&emsp;</a>
+                                <a href="{{ url('files/Template_Sales_New.xlsx') }}" ><i class="mdi mdi-download"></i>  Format RB Sales&emsp;</a>
                             </div>
                             <!-- <div class="form-group">
                                 <label>

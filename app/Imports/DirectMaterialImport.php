@@ -29,6 +29,7 @@ class DirectMaterialImport implements ToModel, WithHeadingRow, WithBatchInserts
         $acc_code  = isset($row['acc_code']) ? $row['acc_code'] : null;
         $acc_name  = isset($row['acc_name']) ? $row['acc_name'] : null;
         $group     = isset($row['group']) ? $row['group'] : null;
+        $code      = isset($row['code']) ? $row['code'] : null;
         $april     = isset($row['apr']) ? $row['apr'] : null;
         $mei       = isset($row['may']) ? $row['may'] : null;
         $juni      = isset($row['jun']) ? $row['jun'] : null;
@@ -71,6 +72,7 @@ class DirectMaterialImport implements ToModel, WithHeadingRow, WithBatchInserts
             $materialrb->acc_code  = $acc_code;
             $materialrb->acc_name  = $acc_name;
             $materialrb->group     = $group;
+            $materialrb->code      = $code;
             $materialrb->april     = $april;
             $materialrb->mei       = $mei;
             $materialrb->juni      = $juni;

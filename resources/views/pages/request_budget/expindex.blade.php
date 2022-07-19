@@ -34,12 +34,13 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card-box">
-                <div class="table-responsive">     
+                <div class="table-responsive">
                     <table class="table m-0 table-colored table-inverse" id="table-exp">
                         <thead>
                             <tr>
                                 <th>Budget Number</th>
                                 <th>Group</th>
+                                <th>Code</th>
                                 <th>Line or Dept</th>
                                 <th>Profit Center</th>
                                 <!-- <th>Profit Center Code</th> -->
@@ -47,7 +48,7 @@
                                 <th>Account Code</th>
                                 <th>Project Name</th>
                                 <th>Equipment Name</th>
-                                <th>Import/Domestic</th>                                                                
+                                <th>Import/Domestic</th>
                                 <th>QTY</th>
                                 <th>Curency</th>
                                 <th>Price/Qty</th>
@@ -61,7 +62,7 @@
                                 <th>1st D Payment Term</th>
                                 <th>1st D Payment Amount</th>
                                 <th>Final Payment Term</th>
-                                <th>Final Payment Amount</th>                                
+                                <th>Final Payment Amount</th>
                                 <th>april</th>
                                 <th>mei</th>
                                 <th>juni</th>
@@ -139,6 +140,7 @@ $(document).ready(function(){
         columns : [
             { data: 'budget_no', name: 'budget_no'},
             { data: 'group', name: 'group'},
+            { data: 'code', name: 'code'},
             { data: 'line', name: 'line'},
             { data: 'profit_center', name: 'profit_center'},
             // { data: 'profit_center_code', name: 'profit_center_code'},
@@ -153,14 +155,14 @@ $(document).ready(function(){
             { data: 'exchange_rate', name: 'exchange_rate'},
             { data: 'budget_before', name: 'budget_before'},
             // { data: 'cr', name: 'cr'},
-            { data: 'budgt_aft_cr', name: 'budgt_aft_cr'},          
+            { data: 'budgt_aft_cr', name: 'budgt_aft_cr'},
             { data: 'po', name: 'po'},
             { data: 'gr', name: 'gr'},
             { data: 'sop', name: 'sop'},
             { data: 'first_dopayment_term', name: 'first_dopayment_term'},
             { data: 'first_dopayment_amount', name: 'first_dopayment_amount'},
             { data: 'final_payment_term', name: 'final_payment_term'},
-            { data: 'final_payment_amount', name: 'final_payment_amount'},            
+            { data: 'final_payment_amount', name: 'final_payment_amount'},
             { data: 'april', name: 'april'},
             { data: 'mei', name: 'mei'},
             { data: 'juni', name: 'juni'},
