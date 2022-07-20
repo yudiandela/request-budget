@@ -45,27 +45,34 @@ class SalesImport implements ToModel, WithHeadingRow, WithBatchInserts
         $fy_2022_2nd   = isset($row['fy_2022_2nd']) ? $row['fy_2022_2nd'] : null;
         $fy_2022_total = isset($row['fy_2022_total']) ? $row['fy_2022_total']: null;
 
-        $cek = SalesRb::where('acc_name', $acc_name)->where('group', $group)->first();
+        $cek = SalesRb::where([
+                'acc_name' => $acc_name,
+                'group' => $group,
+                'code' => $code
+            ])->first();
 
         if ($cek) {
-            $salesrb = SalesRb::where('acc_name', $acc_name)->where('group', $group)
-                ->update([
-                    'april'     => $apr,
-                    'mei'       => $may,
-                    'juni'      => $jun,
-                    'juli'      => $jul,
-                    'agustus'   => $aug,
-                    'september' => $sept,
-                    'oktober'   => $oct,
-                    'november'  => $nov,
-                    'december'  => $dec,
-                    'januari'   => $jan,
-                    'februari'  => $feb,
-                    'maret'     => $mar,
-                    'fy_first'  => $fy_2022_1st,
-                    'fy_second' => $fy_2022_2nd,
-                    'fy_total'  => $fy_2022_total
-                ]);
+            $salesrb = SalesRb::where([
+                'acc_name' => $acc_name,
+                'group' => $group,
+                'code' => $code
+            ])->update([
+                'april'     => $apr,
+                'mei'       => $may,
+                'juni'      => $jun,
+                'juli'      => $jul,
+                'agustus'   => $aug,
+                'september' => $sept,
+                'oktober'   => $oct,
+                'november'  => $nov,
+                'december'  => $dec,
+                'januari'   => $jan,
+                'februari'  => $feb,
+                'maret'     => $mar,
+                'fy_first'  => $fy_2022_1st,
+                'fy_second' => $fy_2022_2nd,
+                'fy_total'  => $fy_2022_total
+            ]);
         } else {
             $salesrb            = new SalesRb;
             $salesrb->acc_code  = $acc_code;

@@ -68,11 +68,19 @@ class ExpenseImport implements ToModel, WithHeadingRow, WithBatchInserts
         $gl_group                  = isset($row['gl_group']) ? $row['gl_group'] : null;
         $code                      = isset($row['code']) ? $row['code'] : null;
 
-        $cek = ExpenseRb::where('budget_no', $budget_no)->where('group', $group)->where('line', $line_or_dept)->first();
+        if($budget_no) {
+            $cek = ExpenseRb::where([
+                'budget_no' => $budget_no,
+                'group' => $group,
+                'line' => $line_or_dept
+            ])->first();
 
-        if ($cek) {
-            $expenserb = ExpenseRb::where('budget_no', $budget_no)->where('group', $group)->where('line', $line_or_dept)
-                ->update([
+            if ($cek) {
+                $expenserb = ExpenseRb::where([
+                    'budget_no' => $budget_no,
+                    'group' => $group,
+                    'line' => $line_or_dept
+                ])->update([
                     'profit_center'          => $profit_center,
                     'profit_center_code'     => $profit_center_code,
                     'cost_center'            => $cost_center,
@@ -108,49 +116,49 @@ class ExpenseImport implements ToModel, WithHeadingRow, WithBatchInserts
                     'maret'                  => $mar,
                     'checking'               => $checking
                 ]);
+            } else {
+                $expenserb                         = new ExpenseRb;
+                $expenserb->budget_no              = $budget_no;
+                $expenserb->group                  = $group;
+                $expenserb->code                   = $code;
+                $expenserb->line                   = $line_or_dept;
+                $expenserb->profit_center          = $profit_center;
+                $expenserb->profit_center_code     = $profit_center_code;
+                $expenserb->cost_center            = $cost_center;
+                $expenserb->acc_code               = $account_code;
+                $expenserb->project_name           = $project_name;
+                $expenserb->equipment_name         = $equipment_name;
+                $expenserb->import_domestic        = $importdomestic;
+                $expenserb->qty                    = $qty;
+                $expenserb->cur                    = $curr;
+                $expenserb->price_per_qty          = $price_per_qty;
+                $expenserb->exchange_rate          = $exchange_rate;
+                $expenserb->budget_before          = $budget_before_cr;
+                $expenserb->cr                     = $cr;
+                $expenserb->budgt_aft_cr           = $budget_after_cr;
+                $expenserb->po                     = $po;
+                $expenserb->gr                     = $gr;
+                $expenserb->sop                    = $sop;
+                $expenserb->first_dopayment_term   = $first_down_payment_term;
+                $expenserb->first_dopayment_amount = $first_down_payment_amount;
+                $expenserb->final_payment_term     = $final_payment_term;
+                $expenserb->final_payment_amount   = $final_payment_amount;
+                $expenserb->april                  = $apr;
+                $expenserb->mei                    = $may;
+                $expenserb->juni                   = $jun;
+                $expenserb->juli                   = $jul;
+                $expenserb->agustus                = $aug;
+                $expenserb->september              = $sep;
+                $expenserb->oktober                = $oct;
+                $expenserb->november               = $nov;
+                $expenserb->december               = $dec;
+                $expenserb->januari                = $jan;
+                $expenserb->februari               = $feb;
+                $expenserb->maret                  = $mar;
+                $expenserb->checking               = $checking;
+                $expenserb->save();
 
-        } else {
-            $expenserb                         = new ExpenseRb;
-            $expenserb->budget_no              = $budget_no;
-            $expenserb->group                  = $group;
-            $expenserb->code                   = $code;
-            $expenserb->line                   = $line_or_dept;
-            $expenserb->profit_center          = $profit_center;
-            $expenserb->profit_center_code     = $profit_center_code;
-            $expenserb->cost_center            = $cost_center;
-            $expenserb->acc_code               = $account_code;
-            $expenserb->project_name           = $project_name;
-            $expenserb->equipment_name         = $equipment_name;
-            $expenserb->import_domestic        = $importdomestic;
-            $expenserb->qty                    = $qty;
-            $expenserb->cur                    = $curr;
-            $expenserb->price_per_qty          = $price_per_qty;
-            $expenserb->exchange_rate          = $exchange_rate;
-            $expenserb->budget_before          = $budget_before_cr;
-            $expenserb->cr                     = $cr;
-            $expenserb->budgt_aft_cr           = $budget_after_cr;
-            $expenserb->po                     = $po;
-            $expenserb->gr                     = $gr;
-            $expenserb->sop                    = $sop;
-            $expenserb->first_dopayment_term   = $first_down_payment_term;
-            $expenserb->first_dopayment_amount = $first_down_payment_amount;
-            $expenserb->final_payment_term     = $final_payment_term;
-            $expenserb->final_payment_amount   = $final_payment_amount;
-            $expenserb->april                  = $apr;
-            $expenserb->mei                    = $may;
-            $expenserb->juni                   = $jun;
-            $expenserb->juli                   = $jul;
-            $expenserb->agustus                = $aug;
-            $expenserb->september              = $sep;
-            $expenserb->oktober                = $oct;
-            $expenserb->november               = $nov;
-            $expenserb->december               = $dec;
-            $expenserb->januari                = $jan;
-            $expenserb->februari               = $feb;
-            $expenserb->maret                  = $mar;
-            $expenserb->checking               = $checking;
-            $expenserb->save();
-
+            }
         }
     }
 }
